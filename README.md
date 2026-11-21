@@ -25,6 +25,11 @@ In another terminal, run `curl -i http://localhost:5080/health`. The endpoint re
 
 The EF Core model uses SQLite. In the `Development` environment the API applies
 pending migrations at startup and creates `claims.db` in its working directory.
+**Migrations are offline maintenance:** stop all API instances and every other
+writer before starting the application or applying migrations, and back up the
+database first. The Approved-status migration rebuilds tables in one transaction
+with foreign keys enabled; it refuses extra indexes, triggers, and foreign-key
+references that it cannot preserve. Its downgrade is intentionally unsupported.
 The database and its sidecars are ignored by Git. Set the `ConnectionStrings__Claims`
 environment variable to override `Data Source=claims.db;Foreign Keys=True`; retain
 foreign-key enforcement in custom connection strings. For other environments, apply
@@ -51,5 +56,31 @@ claimed amounts must be positive and estimated liability may be zero. For exampl
 RM 0.10 and RM 0.20 are stored as 10 and 20 sen. Integer sums are exact but can
 overflow Int64; any future reporting must handle that limit. Broader markets and
 currencies, including differing minor-unit scales, are deferred.
-Claim status values are defined centrally in `Domain/Entities.cs`, but allowed
-transitions and role-based actions are deferred to the claims workflow phase.
+## Demo claims API
+
+Claims endpoints accept `X-Demo-User-Id` only when `ASPNETCORE_ENVIRONMENT` is
+`Development`. Seeded IDs are `1` (claimant) and `2` (officer). This header is
+impersonation for local demonstration, not authentication: never use this mechanism
+for real data. Outside Development all claims endpoints return 401 until real
+authentication is implemented. `/health` remains public.
+
+Request and response bodies use JSON; monetary amounts are decimal MYR. Claims are
+always MY/MYR. Date values use `YYYY-MM-DD` and timestamps are UTC. A claimant sees
+only their own claims; an officer can list and view all claims, but only the assigned
+officer can act on a claim. Claim history and information requests are included in
+claim responses. API operations are:
+
+- `POST /api/claims`: `{ "claimType": "Motor", "incidentDescription": "Damage", "incidentDate": "2026-01-02", "claimedAmount": 12.34 }`. A claimant creates a Submitted claim; Property is also supported.
+- `GET /api/claims` and `GET /api/claims/{id}`: list visible claims or retrieve one.
+- `POST /api/claims/{id}/assign`: an officer takes an unassigned Submitted claim, moving it to UnderReview.
+- `POST /api/claims/{id}/information-requests`: assigned officer sends `{ "message": "..." }`, moving UnderReview to InformationRequired.
+- `POST /api/claims/{id}/respond`: the owning claimant sends `{ "message": "..." }`, returning InformationRequired to UnderReview.
+- `POST /api/claims/{id}/decision`: assigned officer sends `{ "decision": "Approve", "reason": "..." }` or uses `Reject`. The resulting Approved or Rejected claim is terminal. Approval records a decision only; it does not pay or settle a claim.
+
+The database stores InformationRequired as `InfoRequested`. New approvals are stored
+as `Approved`; existing `Settled` records retain their legacy status and are not
+reinterpreted as approvals. This MVP has no settlement operation. Changes are recorded
+in claim history. Conditional database updates and a transaction make
+assignment and its history atomic. Creation returns 201; invalid requests return
+400, missing identity 401, wrong roles 403, inaccessible claims 404, and invalid
+transitions 409. Demo identity does not provide production authorization.

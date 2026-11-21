@@ -95,7 +95,7 @@ namespace Chubb.Claims.Api.Data.Migrations
 
                             t.HasCheckConstraint("CK_Claims_MarketCurrency", "\"MarketCode\" = 'MY' AND \"CurrencyCode\" = 'MYR'");
 
-                            t.HasCheckConstraint("CK_Claims_Status", "\"Status\" IN ('Submitted', 'UnderReview', 'InfoRequested', 'Settled', 'Rejected')");
+                            t.HasCheckConstraint("CK_Claims_Status", "\"Status\" IN ('Submitted', 'UnderReview', 'InfoRequested', 'Settled', 'Rejected', 'Approved')");
 
                             t.HasCheckConstraint("CK_Claims_Type", "\"ClaimType\" IN ('Motor', 'Property')");
                         });

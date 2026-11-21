@@ -1,4 +1,5 @@
 using Chubb.Claims.Api.Data;
+using Chubb.Claims.Api.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,8 @@ if (app.Environment.IsDevelopment())
     await db.Database.MigrateAsync();
     await DevelopmentSeed.InitializeAsync(db);
 }
+
+app.MapClaimsEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 

@@ -60,7 +60,7 @@ public class ClaimsDbContext(DbContextOptions<ClaimsDbContext> options) : DbCont
             t.HasCheckConstraint("CK_Claims_Amounts", "typeof(\"ClaimedAmountSen\") = 'integer' AND \"ClaimedAmountSen\" > 0 AND typeof(\"EstimatedLiabilitySen\") = 'integer' AND \"EstimatedLiabilitySen\" >= 0");
             t.HasCheckConstraint("CK_Claims_MarketCurrency", "\"MarketCode\" = 'MY' AND \"CurrencyCode\" = 'MYR'");
             t.HasCheckConstraint("CK_Claims_Type", "\"ClaimType\" IN ('Motor', 'Property')");
-            t.HasCheckConstraint("CK_Claims_Status", "\"Status\" IN ('Submitted', 'UnderReview', 'InfoRequested', 'Settled', 'Rejected')");
+            t.HasCheckConstraint("CK_Claims_Status", "\"Status\" IN ('Submitted', 'UnderReview', 'InfoRequested', 'Settled', 'Rejected', 'Approved')");
         });
         claims.Property(x => x.MarketCode).IsRequired().HasMaxLength(2);
         claims.Property(x => x.CurrencyCode).IsRequired().HasMaxLength(3);

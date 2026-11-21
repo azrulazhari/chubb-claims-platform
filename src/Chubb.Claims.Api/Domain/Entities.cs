@@ -2,8 +2,8 @@ namespace Chubb.Claims.Api.Domain;
 
 public enum UserRole { Claimant, ClaimsOfficer }
 public enum ClaimType { Motor, Property }
-// Transition rules are intentionally deferred until the claims workflow is defined.
-public enum ClaimStatus { Submitted, UnderReview, InfoRequested, Settled, Rejected }
+// Persisted names are retained for compatibility; API transition rules live in Workflow.
+public enum ClaimStatus { Submitted, UnderReview, InfoRequested, Settled, Rejected, Approved }
 
 public class User
 {

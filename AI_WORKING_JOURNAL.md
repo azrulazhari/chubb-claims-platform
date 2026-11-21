@@ -17,25 +17,66 @@ Fed the assessment brief into ChatGPT to help map out the domain boundaries and 
 * **Database choice:** Weighing SQLite or Postgres in Docker. SQLite is faster to get running locally with zero setup, while Postgres is closer to production—need to lock this down before generating the initial solution.
 * **Claims state machine:** Need to explicitly define the exact status transitions (e.g., `Submitted` -> `UnderReview` -> `InfoRequested` -> `Settled`/`Rejected`) myself before letting Codex scaffold the entities, so it doesn't overcomplicate the schema.
 
+---
+
 ### Next Step
 Lock in the .NET version, database, and status transition rules, then use Codex to scaffold the initial backend project structure.
 
-## Entry 002 — Backend Scaffolding and Audit
-**Focus:** Establishing and verifying the initial backend foundation.
+## Entry 002 — Backend Scaffolding & Verification
+**Focus:** Getting the base .NET API and test project up and running cleanly.
 
-Codex generated the .NET 10 ASP.NET Core API and xUnit test project. A separate read-only audit examined the implementation and verified the foundation before acceptance.
+### What I asked ChatGPT / Codex
+Prompted Codex to scaffold a minimal .NET 10 ASP.NET Core Web API along with an xUnit integration test project so I have a clean baseline before adding domain logic.
 
-The build succeeded with zero warnings and zero errors, and one HTTP endpoint integration test passed. The API also started locally, and `GET /health` returned HTTP 200 with JSON `{"status":"ok"}`. The audit initially encountered sandbox permission and timeout issues; the checks passed after retrying with the required permissions.
+### What I accepted
+* **Base project structure & health check:** Accepted the generated solution layout and the `GET /health` endpoint (verified locally returning `200 OK` with `{"status":"ok"}`). Build compiled with zero warnings/errors and the initial integration test passed.
+* **Deliberate scope deferral:** Kept this step strictly to project setup—held off on database wiring, claims workflows, auth, Kafka, and Angular so I could verify the foundation first.
 
-We accepted the scaffolding because it meets the initial requirements. Database integration, claims business logic, authentication, Kafka, and Angular were deliberately deferred.
+### What I challenged / ran into
+* **Verification hiccups:** Ran a separate read-only audit pass to sanity-check the generated scaffolding before moving on. The first check hit sandbox permission and timeout issues, so I re-ran it with the right permissions to confirm everything actually built and booted properly.
 
-## Entry 003 — SQLite Persistence and Money Representation
-**Focus:** Building and reviewing the claims persistence foundation.
+### Next Step
+Add the database layer and define the core claim entity and money handling rules.
 
-Codex initially generated the EF Core 10 SQLite domain and persistence model. The first verification reported nine passing tests. We challenged its decimal `TEXT` storage and the weak database amount checks that cast values to `REAL`. A separate read-only review clarified that EF Core's decimal operations are not inherently binary floating-point operations, while raw SQLite casts and queries require care.
+---
 
-For the time-limited MVP, we chose Malaysia and MYR only, although the assessment describes six APAC markets. We retained decimal ringgit properties in C# and switched SQLite persistence to checked `Int64` sen values, added market and currency constraints, and expanded the tests. The final verification reported 18 passing tests, zero build warnings or errors, and a successful migration against a fresh temporary database.
+## Entry 003 — SQLite Persistence & Money Representation
+**Focus:** Setting up EF Core persistence and fixing how currency amounts are stored.
 
-We deferred claim workflows, role enforcement, timestamp policy, authentication, reporting, Kafka, and Angular. Remaining risks include `Int64` aggregate overflow and the need for real authorization before production use.
+### What I asked ChatGPT / Codex
+Asked Codex to wire up EF Core 10 with SQLite and generate the initial domain and persistence models for claims.
+
+### What I accepted
+* **Single-market MVP scope (Malaysia / MYR):** Even though the brief mentions six APAC markets, I locked the MVP to Malaysia and `MYR` only with explicit database constraints, keeping the schema focused while still leaving room to expand later.
+* **Test coverage expansion:** Built out the test suite from 9 to 18 passing tests and verified migrations against a fresh temporary SQLite database.
+
+### What I challenged / overrode
+* **Money storage (`TEXT`/`REAL` vs. `Int64` sen):** Codex initially stored `decimal` amounts as `TEXT` in SQLite and wrote database check constraints that cast values to `REAL`. I pushed back on casting money to floating-point `REAL` at the DB layer because of precision risks. Even after double-checking that EF Core handles C# `decimal` math safely in memory, raw SQLite queries and constraints still needed strict integer precision. I overrode the schema to keep `decimal` ringgit properties in the C# domain model while persisting checked `Int64` sen values in SQLite.
+* **Deferred items & known trade-offs:** Held off on claim state transitions, role checks, auth, Kafka, and Angular for the next step. Noted that using `Int64` sen works cleanly for individual claims, though large multi-claim aggregations would need overflow protection in a full production build.
+
+### Next Step
+Implement the claim status transition rules, role-based actions (claimant vs. staff), and workload/exposure queries.
+
+---
+
+## Entry 004 — Claims Workflow, Role Checks & Migration Safety
+**Focus:** Building out the main claims REST endpoints, locking down status transitions, and fixing a risky SQLite migration.
+
+### What I asked ChatGPT / Codex
+Prompted Codex to build the core claims workflow endpoints in ASP.NET Core (submit, track, assign officer, request/submit extra info, and approve/reject), along with role checks, an audit history log, concurrency protection on assignments, and integration tests. Ran the generated code through ChatGPT to catch bugs or edge cases before committing.
+
+### What I accepted
+* **State machine enforcement:** Implemented the lifecycle `Submitted` -> `UnderReview` -> `InfoRequested` -> `UnderReview` -> `Approved` / `Rejected`. Kept transition validation centralized in one place so endpoints can't bypass workflow rules.
+* **Dev-only identity header (`X-Demo-User-Id`):** Used a simple header to simulate claimants and claims officers for local testing, with strict role and ownership checks on every endpoint—and explicitly blocked the header from working outside the `Development` environment.
+* **Atomic claim assignment:** Handled officer pickup with a conditional database update so two officers clicking "assign" at the same time won't overwrite each other, writing the assignment and history entry in a single transaction.
+* **Audit trail & test coverage:** Logged key events (submission, pickup, info requests/responses, final decision) and expanded the integration test suite from 18 to 28 passing tests with zero build warnings.
+
+### What I challenged / overrode
+* **`Approved` vs. `Settled` domain logic:** Codex initially mapped claim approval straight to the `Settled` status. I pushed back on this because in insurance, approving a claim isn't the same thing as paying it out. Split `Approved` into its own status while keeping `Settled` intact for existing records.
+* **Risky SQLite table-rebuild migration:** Because SQLite has limited `ALTER TABLE` support, EF Core migrations often rebuild tables under the hood. The first migration Codex generated split the rebuild across multiple transactions, which risked losing data if anything failed midway. I rejected it and had it rewritten as an additive migration inside a single transaction that preserves all existing claims, history, info requests, foreign keys, and indexes. Added tests for both the upgrade path and forced-failure rollbacks, and noted that running it requires stopping writers and backing up the DB first.
+* **Scope discipline:** Kept full auth, payout/settlement flows, Kafka, and Angular out of this commit so I wouldn't blow past the 5-hour cap before finishing the officer reporting endpoints.
+
+### Next Step
+Commit this batch of work, then build the claims officer workload and MYR liability exposure summary endpoints before starting on a minimal Angular UI.
 
 ---
