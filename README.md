@@ -143,9 +143,13 @@ npm start
 Open `http://localhost:4200`. The Angular development server proxies `/api` and
 `/health` to `http://localhost:5080`; no backend CORS change is required. The
 selector adds `X-Demo-User-Id` only to same-origin API calls in development builds.
-The workspace pages are placeholders; claim workflows and the officer dashboard
-will be added in later phases. JavaScript numbers cannot exactly represent every
-Int64-sized amount; a future monetary input/display must address that limitation.
+Select **Demo Claimant · ID 1** to submit a Motor or Property claim, view its
+list and details, or respond when information is required. The server enforces
+ownership and permissions; choosing a view is not authorization. Amount input is
+validated as a decimal string and sent as an exact JSON numeric token without
+floating-point conversion. The existing API returns JSON numbers, which browsers
+parse as JavaScript numbers: very large returned MYR amounts can lose precision
+when displayed. The officer workspace is still a placeholder.
 
 For frontend verification, run `npm run build` and `npm test -- --watch=false`
 from `frontend/`.

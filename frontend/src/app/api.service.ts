@@ -11,6 +11,7 @@ export interface ClaimResponse {
   history: { actorId: number; action: string; notes: string | null; createdAt: string }[];
   informationRequests: { id: number; requestedByOfficerId: number; message: string; response: string | null; requestedAt: string; respondedAt: string | null }[];
 }
+export interface SubmitClaimRequest { claimType: 'Motor' | 'Property'; incidentDescription: string; incidentDate: string; claimedAmount: string; }
 export interface DashboardResponse {
   totalClaimCount: number; outstandingCount: number; approvedCount: number; rejectedCount: number;
   unassignedOutstandingCount: number; outstandingEstimatedLiability: number; currencyCode: string;
@@ -37,5 +38,14 @@ export class ApiService {
   private readonly http = inject(HttpClient);
   health() { return this.http.get<HealthResponse>('/health'); }
   claims() { return this.http.get<ClaimResponse[]>('/api/claims'); }
+  claim(id: number) { return this.http.get<ClaimResponse>(`/api/claims/${id}`); }
+  submitClaim(request: SubmitClaimRequest) {
+    // Angular serializes a string body as-is: inject only a separately validated numeric token.
+    const { claimedAmount, ...other } = request;
+    if (!/^(?:0|[1-9]\d*)\.\d{2}$/.test(claimedAmount)) throw new Error('Invalid amount token');
+    const body = `${JSON.stringify(other).slice(0, -1)},"claimedAmount":${claimedAmount}}`;
+    return this.http.post<ClaimResponse>('/api/claims', body, { headers: { 'Content-Type': 'application/json' } });
+  }
+  respond(id: number, message: string) { return this.http.post<ClaimResponse>(`/api/claims/${id}/respond`, { message }); }
   dashboard() { return this.http.get<DashboardResponse>('/api/reports/dashboard'); }
 }

@@ -1,0 +1,51 @@
+<section class="view claimant">
+  <span class="eyebrow">CLAIMANT WORKSPACE</span>
+  <h2>Your claims, in one place.</h2>
+  <p>Submit a claim and follow its progress here.</p>
+  @if (identity.selected() !== 1) {
+    <div class="notice">Select <strong>Demo Claimant · ID 1</strong> above to use the claimant workspace. The server enforces access to claims.</div>
+  } @else {
+    <section class="panel" aria-labelledby="submit-title">
+      <div class="panel-heading"><div><span class="eyebrow">NEW CLAIM</span><h3 id="submit-title">Tell us what happened</h3></div><span class="currency">MYR</span></div>
+      <form (ngSubmit)="submit()" novalidate>
+        <div class="form-grid">
+          <label>Claim type <select name="claimType" [(ngModel)]="claimType" required><option value="">Select type</option><option value="Motor">Motor</option><option value="Property">Property</option></select></label>
+          <label>Incident date <input type="date" name="incidentDate" [(ngModel)]="incidentDate" required></label>
+          <label class="wide">Incident description <textarea name="description" [(ngModel)]="description" maxlength="2000" rows="3" required></textarea></label>
+          <label>Claimed amount (MYR) <input type="text" inputmode="decimal" name="amount" [(ngModel)]="amount" placeholder="e.g. 1250.00" required><span class="hint">Enter up to two decimal places, without commas.</span></label>
+        </div>
+        @if (formError()) { <p class="error" role="alert">{{ formError() }}</p> }
+        <button class="primary" type="submit" [disabled]="submitting()">{{ submitting() ? 'Submitting…' : 'Submit claim' }}</button>
+      </form>
+    </section>
+    @if (success()) { <p class="success" role="status">{{ success() }}</p> }
+    <section class="panel" aria-labelledby="list-title">
+      <div class="panel-heading"><div><span class="eyebrow">YOUR CLAIMS</span><h3 id="list-title">Claim activity</h3></div><button type="button" class="link" (click)="loadClaims()" [disabled]="listLoading()">Refresh</button></div>
+      @if (listLoading()) { <p role="status">Loading claims…</p> }
+      @else if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+      @else if (claims().length === 0) { <p class="empty">No claims yet. Submit your first claim above.</p> }
+      @else {
+        <div class="table-wrap"><table><thead><tr><th>Claim number</th><th>Type</th><th>Status</th><th>Incident date</th><th>Amount</th><th><span class="sr-only">Details</span></th></tr></thead><tbody>
+        @for (claim of claims(); track claim.id) { <tr><td>{{ claim.claimNumber }}</td><td>{{ claim.claimType }}</td><td><span class="status">{{ claim.status }}</span></td><td>{{ claim.incidentDate }}</td><td>MYR {{ claim.claimedAmount }}</td><td><button type="button" class="link" (click)="openClaim(claim.id)" [attr.aria-label]="'View details for ' + claim.claimNumber">View</button></td></tr> }
+        </tbody></table></div>
+      }
+    </section>
+    @if (detailLoading()) { <p role="status">Loading claim details…</p> }
+    @if (detailError()) { <p class="error" role="alert">{{ detailError() }}</p> }
+    @if (detail(); as claim) {
+      <section class="panel" aria-labelledby="detail-title">
+        <div class="panel-heading"><div><span class="eyebrow">CLAIM DETAILS</span><h3 id="detail-title">{{ claim.claimNumber }}</h3></div><span class="status">{{ claim.status }}</span></div>
+        <dl class="details"><div><dt>Claim type</dt><dd>{{ claim.claimType }}</dd></div><div><dt>Incident date</dt><dd>{{ claim.incidentDate }}</dd></div><div><dt>Claimed amount</dt><dd>MYR {{ claim.claimedAmount }}</dd></div><div class="wide"><dt>Incident description</dt><dd>{{ claim.incidentDescription }}</dd></div></dl>
+        <h4>Information requests</h4>
+        @if (claim.informationRequests.length === 0) { <p class="empty">No information requests.</p> }
+        @for (request of claim.informationRequests; track request.id) { <div class="request"><p><strong>Requested:</strong> {{ request.message }}</p><p><strong>Response:</strong> {{ request.response || 'Awaiting your response' }}</p></div> }
+        @if (claim.status === 'InformationRequired') {
+          <form (ngSubmit)="respond()" novalidate><label>Your response <textarea name="response" [(ngModel)]="response" maxlength="2000" rows="3" required></textarea></label>@if (responseError()) { <p class="error" role="alert">{{ responseError() }}</p> }<button type="submit" class="primary" [disabled]="responding()">{{ responding() ? 'Sending…' : 'Send response' }}</button></form>
+        }
+        <h4>Claim history</h4>
+        @if (claim.history.length === 0) { <p class="empty">No history yet.</p> }
+        <ol class="history">@for (item of claim.history; track $index) { <li><strong>{{ item.action }}</strong> · User {{ item.actorId }} · {{ item.createdAt }} @if (item.notes) { <p>{{ item.notes }}</p> }</li> }</ol>
+      </section>
+    }
+  }
+</section>

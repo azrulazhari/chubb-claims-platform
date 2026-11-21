@@ -124,3 +124,25 @@ Prompted Codex to generate a minimal Angular frontend inside the existing repo (
 Build out the claimant workflow screens (submit claim, view list/details, respond to info requests), followed by the claims officer queue and dashboard views, then run full end-to-end checks.
 
 ---
+
+## Entry 007 — Claimant Portal & Financial Input Validation
+**Focus:** Building the claimant-facing Angular UI and handling MYR inputs without JavaScript floating-point rounding bugs.
+
+### What I asked ChatGPT / Codex
+Prompted Codex to replace the claimant placeholder page with a working Angular view wired to the existing ASP.NET Core endpoints. Asked for Motor and Property claim submission, claim listing, status/history tracking, information request responses, form validation, and frontend tests—specifically ensuring MYR amounts don't suffer from JS float precision issues and that switching demo identities never leaks stale data from another user.
+
+### What I accepted
+* **Full claimant flow:** Implemented Motor and Property claim submission, claim lists, detail views with audit history, and inline responses to open information requests—reusing the existing backend API contracts with zero backend or schema changes needed.
+* **Exact JSON serialization for MYR amounts:** Validated currency input strings directly into integer sen values before sending them over the wire, serializing them as raw JSON numeric tokens instead of passing them through JS `number` floats.
+* **Safe demo identity switching:** Made the UI immediately wipe active claimant state and abort in-flight HTTP requests whenever the demo identity dropdown changes, preventing a previous user's response from rendering under the new identity.
+* **Test coverage & smoke check:** Grew the Angular test suite from 2 to 17 passing tests, verified a clean production build, and ran a proxy smoke test covering submission, officer info requests, and claimant replies.
+
+### What I challenged / overrode
+* **No standard JS float parsing on form inputs:** Rejected parsing monetary form inputs via `parseFloat` or `Number(...)` since binary floats can silently distort ringgit/sen amounts before submission.
+* **Documented response-side precision limit:** Noted that while outgoing claim amounts are serialized cleanly from integer sen, the backend still returns standard JSON numbers—meaning extremely large amounts could still lose precision on the JS read side unless the API serializes money as strings or integer sen. Flagged this explicitly rather than pretending the frontend solved end-to-end precision alone.
+* **Scope discipline:** Kept this commit strictly focused on the claimant portal and left the claims officer queue, dashboard metrics, and decision actions for the final UI pass.
+
+### Next Step
+Commit the claimant portal, then build the claims officer workspace (dashboard metrics, queue pickup, info requests, and approve/reject actions) and run a full end-to-end walkthrough across both roles.
+
+---
