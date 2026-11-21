@@ -1,0 +1,17 @@
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" routerLink="/claimant" aria-label="Chubb Claims home"><span class="brand-mark">CHUBB</span><span class="brand-divider"></span><span>Claims</span></a>
+    <span class="market">MALAYSIA <span> / </span> MYR</span>
+  </div>
+</header>
+<main class="layout">
+  <div class="intro"><div><p class="eyebrow">CLAIMS PLATFORM <span class="dot">•</span> DEMO</p><h1>Welcome to claims.</h1><p class="lede">A simpler way to move claims forward.</p></div><div class="connection" role="status" aria-live="polite"><span class="connection-dot" [class.connected]="health() === 'success'" [class.failed]="health() === 'error'"></span>@if (health() === 'loading') { Checking API connection } @else if (health() === 'success') { API connected } @else { API unavailable <button type="button" (click)="checkHealth()">Retry</button> }</div></div>
+  @if (development) {
+    <section class="demo-bar" aria-labelledby="demo-title"><div><p id="demo-title" class="demo-title">Demo identity</p><p>Impersonation for local development only. This is not authentication.</p></div><div class="select-wrap"><label for="demo-user">View as</label><select id="demo-user" (change)="selectIdentity($event)"><option value="">Select an identity</option><option value="1">Demo Claimant · ID 1</option><option value="2">Demo Claims Officer · ID 2</option></select></div></section>
+  }
+  <div class="workspace">
+    <aside class="sidebar"><p class="nav-label">WORKSPACES</p><nav aria-label="Workspaces"><a routerLink="/claimant" routerLinkActive="active" ariaCurrentWhenActive="page"><span aria-hidden="true">◌</span> Claimant <span class="arrow" aria-hidden="true">→</span></a><a routerLink="/officer" routerLinkActive="active" ariaCurrentWhenActive="page"><span aria-hidden="true">▦</span> Claims officer <span class="arrow" aria-hidden="true">→</span></a></nav><p class="sidebar-note">Select a workspace to explore the platform.</p></aside>
+    <router-outlet />
+  </div>
+  <footer><span>CHUBB CLAIMS PLATFORM</span><span>Phase 6A · Foundation</span></footer>
+</main>

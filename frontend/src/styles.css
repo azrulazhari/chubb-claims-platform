@@ -1,0 +1,12 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f4f5f3; color: #19252d; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
+button, select { font: inherit; }
+a:focus-visible, button:focus-visible, select:focus-visible { outline: 3px solid #167aaa; outline-offset: 3px; }
+.view { padding: 48px 50px; min-height: 310px; }
+.eyebrow { color: #547071; font-size: 11px; font-weight: 700; letter-spacing: .13em; }
+.view h2 { font-family: Georgia, serif; font-size: clamp(26px, 3vw, 35px); font-weight: 400; margin: 18px 0 12px; letter-spacing: -.035em; }
+.view > p { color: #647275; font-size: 15px; line-height: 1.6; }
+.placeholder { display: flex; gap: 17px; margin-top: 43px; padding: 22px; background: #f6f8f7; border: 1px solid #e6eeea; border-radius: 5px; }
+.placeholder-icon { flex: 0 0 36px; height: 36px; display: grid; place-items: center; background: #e1eee9; color: #1c705e; border-radius: 50%; font-size: 20px; }
+.placeholder strong { font-size: 14px; }.placeholder p { color: #6d7c7a; font-size: 13px; margin: 7px 0 0; line-height: 1.5; }
+@media (max-width: 640px) { .view { padding: 30px 24px; } }

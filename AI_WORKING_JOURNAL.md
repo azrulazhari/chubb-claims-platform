@@ -102,3 +102,25 @@ Prompted Codex to build a dashboard reporting endpoint on the existing ASP.NET C
 Commit the reporting endpoint, then scaffold a lean Angular frontend covering the core claimant and claims officer flows and run end-to-end tests against the API.
 
 ---
+
+## Entry 006 — Angular Foundation & API Integration
+**Focus:** Scaffolding the Angular frontend, wiring up the dev proxy to the .NET API, and separating claimant vs. officer views.
+
+### What I asked ChatGPT / Codex
+Prompted Codex to generate a minimal Angular frontend inside the existing repo (matching my local Node runtime) with separate routes for claimants and claims officers, a dev-only user switcher, typed API client services, and a live health-check banner. Asked it to verify that the frontend builds, passes tests, and talks cleanly to the ASP.NET Core backend.
+
+### What I accepted
+* **Angular 22.3 standalone setup:** Built a single Angular app using standalone components with no heavy third-party UI libraries so it stays fast and easy to maintain within the assessment window.
+* **Role-based routing & dev switcher:** Set up distinct claimant and claims officer routes with placeholder views, wired to a local-only identity selector matching the backend's seeded users (clearly isolated from real auth).
+* **Dev proxy instead of CORS changes:** Configured Angular's dev proxy to forward `/api` and `/health` calls to `localhost:5080`, letting frontend and backend communicate locally without relaxing CORS rules on the API.
+* **Health-check status & verification:** Built explicit loading, success, error, and retry states on the health indicator, verified a `200 OK` round-trip through the proxy against a temporary database, and confirmed the production build succeeded.
+
+### What I challenged / overrode
+* **Broken starter tests:** The generated tests initially failed because they were still asserting against Angular's default boilerplate welcome page. Rewrote them to test the actual app layout and routes, bringing the suite to 2/2 passing tests.
+* **JavaScript floating-point money risk:** Flagged early that standard JS `number` handling can introduce rounding errors on currency values. Held off on writing monetary inputs and formatting in this scaffolding commit so I can handle MYR/sen string/decimal formatting cleanly when building the claimant submission form.
+* **npm install-script warnings:** `npm install` flagged pending lifecycle script approvals, but since the build and tests ran cleanly without them, I left the lockfile/config untouched instead of adding unnecessary npm overrides—just noted it here for transparency.
+
+### Next Step
+Build out the claimant workflow screens (submit claim, view list/details, respond to info requests), followed by the claims officer queue and dashboard views, then run full end-to-end checks.
+
+---

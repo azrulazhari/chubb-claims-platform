@@ -117,3 +117,35 @@ Workload includes each officer, including those with zero assigned outstanding c
 All values are MYR only. The server reads integer sen and adds them with checked
 Int64 arithmetic; if the sum exceeds Int64, it returns HTTP 422 rather than an
 inaccurate total. This implementation scans claims for each dashboard request.
+
+## Angular frontend foundation
+
+The standalone Angular application is in `frontend/`. It uses the seeded demo
+claimant (ID 1) and claims officer (ID 2). The selector is local Development-only
+impersonation, not authentication. The backend still rejects demo identities outside
+Development; the UI does not implement production authentication.
+
+The Angular 22 toolchain supports Node.js `^22.22.3`, `^24.15.0`, or `^26.0.0`.
+From the repository root, use two terminals:
+
+```sh
+# Terminal 1 — stop other database writers before Development migrations
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/Chubb.Claims.Api --no-launch-profile -- --urls http://localhost:5080
+```
+
+```sh
+# Terminal 2
+cd frontend
+npm ci
+npm start
+```
+
+Open `http://localhost:4200`. The Angular development server proxies `/api` and
+`/health` to `http://localhost:5080`; no backend CORS change is required. The
+selector adds `X-Demo-User-Id` only to same-origin API calls in development builds.
+The workspace pages are placeholders; claim workflows and the officer dashboard
+will be added in later phases. JavaScript numbers cannot exactly represent every
+Int64-sized amount; a future monetary input/display must address that limitation.
+
+For frontend verification, run `npm run build` and `npm test -- --watch=false`
+from `frontend/`.
