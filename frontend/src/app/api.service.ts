@@ -47,5 +47,8 @@ export class ApiService {
     return this.http.post<ClaimResponse>('/api/claims', body, { headers: { 'Content-Type': 'application/json' } });
   }
   respond(id: number, message: string) { return this.http.post<ClaimResponse>(`/api/claims/${id}/respond`, { message }); }
+  assign(id: number) { return this.http.post<ClaimResponse>(`/api/claims/${id}/assign`, null); }
+  requestInformation(id: number, message: string) { return this.http.post<ClaimResponse>(`/api/claims/${id}/information-requests`, { message }); }
+  decide(id: number, decision: 'Approve' | 'Reject', reason: string) { return this.http.post<ClaimResponse>(`/api/claims/${id}/decision`, { decision, reason }); }
   dashboard() { return this.http.get<DashboardResponse>('/api/reports/dashboard'); }
 }

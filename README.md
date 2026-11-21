@@ -149,7 +149,13 @@ ownership and permissions; choosing a view is not authorization. Amount input is
 validated as a decimal string and sent as an exact JSON numeric token without
 floating-point conversion. The existing API returns JSON numbers, which browsers
 parse as JavaScript numbers: very large returned MYR amounts can lose precision
-when displayed. The officer workspace is still a placeholder.
+when displayed. Select **Demo Claims Officer · ID 2** to view the workload
+dashboard and claims queue, inspect claim history and information requests, take
+an unassigned Submitted claim, request information, or approve/reject an
+UnderReview claim assigned to that officer. A decision requires a reason;
+approval does not settle or pay a claim. The dashboard and claim details display
+API JSON numbers directly, so very large amounts may lose precision in the browser.
+The backend remains responsible for authorization and transition checks.
 
 For frontend verification, run `npm run build` and `npm test -- --watch=false`
 from `frontend/`.

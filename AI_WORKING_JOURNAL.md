@@ -146,3 +146,26 @@ Prompted Codex to replace the claimant placeholder page with a working Angular v
 Commit the claimant portal, then build the claims officer workspace (dashboard metrics, queue pickup, info requests, and approve/reject actions) and run a full end-to-end walkthrough across both roles.
 
 ---
+
+## Entry 008 — Claims Officer Portal & End-to-End Workflow Integration
+**Focus:** Building the claims officer Angular workspace, wiring up dashboard metrics and claim decisions, and verifying the full end-to-end lifecycle.
+
+### What I asked ChatGPT / Codex
+Prompted Codex to replace the claims officer placeholder with a working Angular view connected to the existing ASP.NET Core endpoints. Asked for dashboard summary cards, per-officer workload counts, the incoming claims queue and detail drawer/view, self-assignment, information requests, and approve/reject actions—along with error handling, safe identity-switching behavior, and integration tests.
+
+### What I accepted
+* **Live officer dashboard:** Hooked up `GET /api/reports/dashboard` to show total claims, outstanding MYR liability exposure, unassigned queue count, and active workload per officer.
+* **Claims queue & decision actions:** Built the officer queue and detail views (showing incident details, audit history, current assignee, and info request threads) along with self-assignment, request-info, and approve/reject actions requiring a decision reason. Left all actual state transition and permission enforcement on the backend.
+* **State refresh & identity isolation:** Triggered automatic refreshes across dashboard metrics, queue lists, and the selected claim after any mutation, and cleared role state + aborted in-flight requests whenever the demo identity switches.
+* **Test coverage & proxy E2E check:** Expanded the Angular test suite from 17 to 27 passing tests with a clean production build, and ran an end-to-end smoke test through the Angular dev proxy against a fresh database (submit -> assign -> request info -> claimant reply -> approve), confirming the dashboard flipped from 1 outstanding claim to 1 approved claim.
+
+### What I challenged / overrode
+* **UI hiding vs. real backend authorization:** Kept role-based UI views for usability, but explicitly relied on the backend's role and ownership checks as the source of truth rather than treating frontend route/button hiding as security. Kept the demo identity switcher clearly scoped to local `Development` testing.
+* **Display-side currency precision:** Kept the explicit caveat from Entry 007 that while outgoing MYR inputs are serialized cleanly from integer sen, large JSON numbers returned by the API could still lose precision in JS if rendered naively—avoided overclaiming full precision across arbitrary ranges.
+* **Proxy smoke test vs. manual browser walkthrough:** Clearly separated the automated API/proxy round-trip verification from a real interactive browser click-through, flagging the browser check as a mandatory step before final submission.
+* **Scope discipline:** Reused existing API contracts with zero new infrastructure, auth providers, or Kafka brokers—prioritizing a complete, reliable end-to-end claims lifecycle within the 5-hour assessment limit.
+
+### Next Step
+Commit the officer portal, run a full interactive browser walkthrough across both roles, rerun the complete backend and frontend test suites, clean up documentation and Git history, and package everything for submission.
+
+---

@@ -1,0 +1,46 @@
+<section class="view officer">
+  <span class="eyebrow">OFFICER WORKSPACE</span><h2>A clear view of your workload.</h2><p>Review claims and manage the next steps in one place.</p>
+  @if (identity.selected() !== 2) {
+    <div class="notice">Select <strong>Demo Claims Officer · ID 2</strong> above to use the officer workspace. The server enforces access and permissions.</div>
+  } @else {
+    <section class="panel" aria-labelledby="dashboard-title">
+      <div class="panel-heading"><div><span class="eyebrow">OVERVIEW</span><h3 id="dashboard-title">Workload dashboard</h3></div><button class="link" type="button" (click)="refresh()" [disabled]="loadingDashboard() || loadingQueue()">Refresh</button></div>
+      @if (loadingDashboard()) { <p role="status">Loading dashboard…</p> }
+      @else if (dashboardError()) { <p class="error" role="alert">{{ dashboardError() }}</p> }
+      @else if (dashboard(); as report) {
+        <dl class="metrics"><div><dt>Total claims</dt><dd>{{ report.totalClaimCount }}</dd></div><div><dt>Outstanding</dt><dd>{{ report.outstandingCount }}</dd></div><div><dt>Approved</dt><dd>{{ report.approvedCount }}</dd></div><div><dt>Rejected</dt><dd>{{ report.rejectedCount }}</dd></div><div><dt>Unassigned outstanding</dt><dd>{{ report.unassignedOutstandingCount }}</dd></div><div><dt>Outstanding estimated liability</dt><dd>{{ report.currencyCode }} {{ report.outstandingEstimatedLiability }}</dd></div></dl>
+        <h4>Outstanding claims by officer</h4>
+        @if (report.officerWorkload.length === 0) { <p class="empty">No claims officers available.</p> }
+        @else { <ul class="workload">@for (officer of report.officerWorkload; track officer.officerId) { <li><span>{{ officer.displayName }} · ID {{ officer.officerId }}</span><strong>{{ officer.outstandingCount }}</strong></li> }</ul> }
+        <p class="hint">Estimated liability is not a paid or settled amount. Large JSON amounts may lose precision when displayed.</p>
+      }
+    </section>
+    @if (success()) { <p class="success" role="status">{{ success() }}</p> }
+    <section class="panel" aria-labelledby="queue-title"><div class="panel-heading"><div><span class="eyebrow">CLAIMS</span><h3 id="queue-title">Claims queue</h3></div></div>
+      @if (loadingQueue()) { <p role="status">Loading claims…</p> }
+      @else if (queueError()) { <p class="error" role="alert">{{ queueError() }}</p> }
+      @else if (claims().length === 0) { <p class="empty">No claims in the queue.</p> }
+      @else { <div class="table-wrap"><table><thead><tr><th>Claim number</th><th>Type</th><th>Status</th><th>Claimant</th><th>Assigned officer</th><th><span class="sr-only">Details</span></th></tr></thead><tbody>
+        @for (claim of claims(); track claim.id) { <tr><td>{{ claim.claimNumber }}</td><td>{{ claim.claimType }}</td><td><span class="status">{{ claim.status }}</span></td><td>ID {{ claim.claimantId }}</td><td>{{ claim.assignedOfficerId === null ? 'Unassigned' : 'ID ' + claim.assignedOfficerId }}</td><td><button type="button" class="link" (click)="openClaim(claim.id)" [disabled]="busy()" [attr.aria-label]="'View details for ' + claim.claimNumber">View</button></td></tr> }
+      </tbody></table></div> }
+    </section>
+    @if (loadingDetail()) { <p role="status">Loading claim details…</p> }
+    @if (detailError()) { <p class="error" role="alert">{{ detailError() }}</p> }
+    @if (detail(); as claim) {
+      <section class="panel" aria-labelledby="detail-title"><div class="panel-heading"><div><span class="eyebrow">CLAIM DETAILS</span><h3 id="detail-title">{{ claim.claimNumber }}</h3></div><span class="status">{{ claim.status }}</span></div>
+        <dl class="details"><div><dt>Claimant</dt><dd>ID {{ claim.claimantId }}</dd></div><div><dt>Assigned officer</dt><dd>{{ claim.assignedOfficerId === null ? 'Unassigned' : 'ID ' + claim.assignedOfficerId }}</dd></div><div><dt>Claim type</dt><dd>{{ claim.claimType }}</dd></div><div><dt>Incident date</dt><dd>{{ claim.incidentDate }}</dd></div><div><dt>Claimed amount</dt><dd>MYR {{ claim.claimedAmount }}</dd></div><div><dt>Estimated liability</dt><dd>MYR {{ claim.estimatedLiability }}</dd></div><div class="wide"><dt>Incident description</dt><dd>{{ claim.incidentDescription }}</dd></div></dl>
+        <p class="hint">Large amounts returned by the API may lose precision when displayed in the browser.</p>
+        @if (!loadingDetail() && claim.status === 'Submitted' && claim.assignedOfficerId === null) { <button class="primary" type="button" (click)="assign()" [disabled]="busy()">{{ busy() ? 'Updating…' : 'Assign to me' }}</button> }
+        @if (canReview(claim)) {
+          <h4>Request information</h4><form (ngSubmit)="requestInfo()" novalidate><label>Message <textarea name="message" [(ngModel)]="message" maxlength="2000" rows="3" required></textarea></label><button class="primary" type="submit" [disabled]="busy()">Request information</button></form>
+          <h4>Make a decision</h4><p class="hint">A decision reason is required. Approval does not settle or pay a claim.</p><label>Decision reason <textarea name="reason" [(ngModel)]="reason" maxlength="2000" rows="3" required></textarea></label><div class="actions"><button class="primary" type="button" (click)="decide('Approve')" [disabled]="busy()">Approve</button><button class="secondary" type="button" (click)="decide('Reject')" [disabled]="busy()">Reject</button></div>
+        }
+        @if (actionError()) { <p class="error" role="alert">{{ actionError() }}</p> }
+        <h4>Information requests</h4>@if (claim.informationRequests.length === 0) { <p class="empty">No information requests.</p> }
+        @for (request of claim.informationRequests; track request.id) { <div class="request"><p><strong>Requested:</strong> {{ request.message }}</p><p><strong>Response:</strong> {{ request.response || 'Awaiting claimant response' }}</p></div> }
+        <h4>Claim history</h4>@if (claim.history.length === 0) { <p class="empty">No history yet.</p> }
+        <ol class="history">@for (item of claim.history; track $index) { <li><strong>{{ item.action }}</strong> · User {{ item.actorId }} · {{ item.createdAt }} @if (item.notes) { <p>{{ item.notes }}</p> }</li> }</ol>
+      </section>
+    }
+  }
+</section>
