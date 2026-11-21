@@ -60,14 +60,18 @@ public static class ClaimsEndpoints
         c.InformationRequests.OrderBy(x => x.Id).Select(x => new InformationRequestResponse(x.Id, x.RequestedByOfficerId, x.Message, x.Response, x.RequestedAt, x.RespondedAt)).ToList());
     private static IQueryable<Claim> Details(IQueryable<Claim> claims) => claims.AsNoTracking().Include(x => x.History).Include(x => x.InformationRequests);
 
-    private static async Task<IResult> Submit(SubmitClaimRequest request, HttpContext http, ClaimsDbContext db)
+    private static async Task<IResult> Submit(SubmitClaimRequest request, HttpContext http, ClaimsDbContext db, TimeProvider timeProvider)
     {
         var actor = Actor(http);
         if (actor.Role != UserRole.Claimant) return Results.StatusCode(403);
         if ((request.ClaimType != "Motor" && request.ClaimType != "Property") || !ValidText(request.IncidentDescription, 2000) ||
             request.IncidentDate is null || request.IncidentDate == default(DateOnly) || !ValidAmount(request.ClaimedAmount))
             return Results.BadRequest(new { error = "Provide a valid claim type, description, incident date and positive MYR amount in whole sen." });
-        var now = DateTimeOffset.UtcNow;
+        var now = timeProvider.GetUtcNow();
+        var malaysiaZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kuala_Lumpur");
+        var malaysiaToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, malaysiaZone).DateTime);
+        if (request.IncidentDate > malaysiaToday)
+            return Results.BadRequest(new { error = "Incident date cannot be in the future in Malaysia." });
         var claim = new Claim { ClaimNumber = $"CL-{Guid.NewGuid():N}", ClaimantId = actor.Id,
             ClaimType = Enum.Parse<ClaimType>(request.ClaimType), IncidentDescription = request.IncidentDescription!,
             IncidentDate = request.IncidentDate.Value, ClaimedAmount = request.ClaimedAmount!.Value,

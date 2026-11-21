@@ -11,7 +11,7 @@
   }
   <div class="workspace">
     <aside class="sidebar"><p class="nav-label">WORKSPACES</p><nav aria-label="Workspaces"><a routerLink="/claimant" routerLinkActive="active" ariaCurrentWhenActive="page"><span aria-hidden="true">◌</span> Claimant <span class="arrow" aria-hidden="true">→</span></a><a routerLink="/officer" routerLinkActive="active" ariaCurrentWhenActive="page"><span aria-hidden="true">▦</span> Claims officer <span class="arrow" aria-hidden="true">→</span></a></nav><p class="sidebar-note">Select a workspace to explore the platform.</p></aside>
-    <router-outlet />
+    <div class="workspace-content"><router-outlet /></div>
   </div>
   <footer><span>CHUBB CLAIMS PLATFORM</span><span>Phase 6A · Foundation</span></footer>
 </main>

@@ -5,6 +5,12 @@ import { Subscription } from 'rxjs';
 import { ApiService, ClaimResponse, DemoIdentity } from './api.service';
 import { parseMyr } from './money';
 
+export function malaysiaToday(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kuala_Lumpur', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  const part = (type: string) => parts.find(item => item.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
 function validDate(value: string): boolean {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!m || m[1] === '0000') return false;
@@ -32,16 +38,20 @@ export class ClaimantView {
   readonly formError = signal('');
   readonly responseError = signal('');
   readonly success = signal('');
+  get maxIncidentDate(): string { return malaysiaToday(); }
   claimType = '';
   description = '';
   incidentDate = '';
   amount = '';
   response = '';
   private detailRequest?: Subscription;
+  private selectedClaimId: number | null = null;
+  private selectionVersion = 0;
 
   constructor() {
     effect(onCleanup => {
       const id = this.identity.selected();
+      this.selectedClaimId = null; this.selectionVersion++;
       this.requests.unsubscribe();
       this.requests = new Subscription();
       this.claims.set([]); this.detail.set(null); this.error.set(''); this.detailError.set('');
@@ -77,6 +87,7 @@ export class ClaimantView {
     if ((this.claimType !== 'Motor' && this.claimType !== 'Property') || !this.description.trim() || this.description.length > 2000 || !validDate(this.incidentDate) || !amount) {
       this.formError.set('Choose a claim type, enter a valid date and description (up to 2,000 characters), and a positive MYR amount with at most two decimal places within the supported range.'); return;
     }
+    if (this.incidentDate > this.maxIncidentDate) { this.formError.set('Incident date cannot be in the future in Malaysia.'); return; }
     this.formError.set(''); this.success.set(''); this.submitting.set(true);
     this.requests.add(this.api.submitClaim({ claimType: this.claimType, incidentDescription: this.description, incidentDate: this.incidentDate, claimedAmount: amount }).subscribe({
       next: claim => { if (this.identity.selected() !== 1) return; this.submitting.set(false); this.success.set(`Claim ${claim.claimNumber} submitted.`); this.description = ''; this.incidentDate = ''; this.amount = ''; this.claimType = ''; this.loadClaims(); },
@@ -85,7 +96,8 @@ export class ClaimantView {
   }
   openClaim(id: number): void {
     if (this.identity.selected() !== 1) return;
-    this.detailRequest?.unsubscribe(); this.detail.set(null); this.detailError.set(''); this.responseError.set(''); this.response = ''; this.detailLoading.set(true);
+    this.selectedClaimId = id; this.selectionVersion++;
+    this.detailRequest?.unsubscribe(); this.detail.set(null); this.detailError.set(''); this.responseError.set(''); this.success.set(''); this.responding.set(false); this.response = ''; this.detailLoading.set(true);
     this.detailRequest = this.api.claim(id).subscribe({
       next: claim => { if (this.identity.selected() !== 1) return; this.detail.set(claim); this.detailLoading.set(false); },
       error: err => { if (this.identity.selected() !== 1) return; this.detailLoading.set(false); this.detailError.set(this.message(err)); }
@@ -96,10 +108,11 @@ export class ClaimantView {
     const claim = this.detail();
     if (!claim || this.identity.selected() !== 1 || this.responding()) return;
     if (!this.response.trim() || this.response.length > 2000) { this.responseError.set('Enter a response of up to 2,000 characters.'); return; }
+    const version = this.selectionVersion;
     this.responseError.set(''); this.responding.set(true);
     this.requests.add(this.api.respond(claim.id, this.response).subscribe({
-      next: updated => { if (this.identity.selected() !== 1) return; this.responding.set(false); this.detail.set(updated); this.response = ''; this.success.set('Response sent.'); this.loadClaims(); },
-      error: err => { if (this.identity.selected() !== 1) return; this.responding.set(false); this.responseError.set(this.message(err)); }
+      next: updated => { if (this.identity.selected() !== 1 || this.selectedClaimId !== claim.id || this.selectionVersion !== version) return; this.responding.set(false); this.detail.set(updated); this.response = ''; this.success.set('Response sent.'); this.loadClaims(); },
+      error: err => { if (this.identity.selected() !== 1 || this.selectedClaimId !== claim.id || this.selectionVersion !== version) return; this.responding.set(false); this.responseError.set(this.message(err)); }
     }));
   }
 }

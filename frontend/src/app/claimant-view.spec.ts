@@ -2,7 +2,8 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { ApiService, ClaimResponse, DemoIdentity, demoIdentityInterceptor } from './api.service';
-import { ClaimantView } from './claimant-view';
+import { ClaimantView, malaysiaToday } from './claimant-view';
+import { vi } from 'vitest';
 import { parseMyr } from './money';
 
 const claim: ClaimResponse = {
@@ -22,6 +23,13 @@ describe('MYR input', () => {
   });
   it.each(['', '0', '0.00', '-1', '1.001', '1e2', '1,000', '.1', '1.', '92233720368547758.08'])('rejects invalid amount %s', value => {
     expect(parseMyr(value)).toBeNull();
+  });
+});
+
+describe('Malaysia calendar', () => {
+  it('uses Malaysia date on either side of midnight', () => {
+    expect(malaysiaToday(new Date('2026-06-01T15:59:59Z'))).toBe('2026-06-01');
+    expect(malaysiaToday(new Date('2026-06-01T16:00:00Z'))).toBe('2026-06-02');
   });
 });
 
@@ -49,6 +57,24 @@ describe('claimant portal', () => {
     http.expectOne('/api/claims').flush([claim]); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Claim CL-123 submitted.');
   });
+  it('allows yesterday and today, and rejects tomorrow using Malaysia time', () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-06-01T16:00:00Z'));
+    try {
+      const { fixture, component, http } = setup(); http.expectOne('/api/claims').flush([]);
+      fixture.detectChanges();
+      expect((fixture.nativeElement.querySelector('input[name="incidentDate"]') as HTMLInputElement).max).toBe('2026-06-02');
+      component.claimType = 'Motor'; component.description = 'Damage'; component.amount = '1.00';
+      for (const date of ['2026-06-01', '2026-06-02']) {
+        component.incidentDate = date; component.submit();
+        http.expectOne('/api/claims').flush(claim, { status: 201, statusText: 'Created' });
+        http.expectOne('/api/claims').flush([]);
+        component.claimType = 'Motor'; component.description = 'Damage'; component.amount = '1.00';
+      }
+      component.incidentDate = '2026-06-03'; component.submit(); fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Incident date cannot be in the future in Malaysia');
+      http.expectNone(req => req.method === 'POST');
+    } finally { vi.useRealTimers(); }
+  });
   it('renders list, details, history and sends an information response', () => {
     const { fixture, component, http } = setup(); http.expectOne('/api/claims').flush([claim]); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('CL-123');
@@ -64,6 +90,39 @@ describe('claimant portal', () => {
     http.expectOne('/api/claims').flush([claim]); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Response sent.');
     expect(fixture.nativeElement.textContent).toContain('Photo sent');
+  });
+  it('does not replace another selected claim when an earlier response completes', () => {
+    const { fixture, component, http } = setup();
+    const other = { ...claim, id: 8, claimNumber: 'CL-456', incidentDescription: 'Other claim' };
+    http.expectOne('/api/claims').flush([claim, other]);
+    component.openClaim(7); http.expectOne('/api/claims/7').flush(claim);
+    component.response = 'Photo sent'; component.respond();
+    const pending = http.expectOne('/api/claims/7/respond');
+    component.openClaim(8); http.expectOne('/api/claims/8').flush(other); fixture.detectChanges();
+    pending.flush({ ...claim, status: 'UnderReview' }); fixture.detectChanges();
+    expect(component.detail()?.id).toBe(8);
+    expect(component.responding()).toBe(false);
+    expect(component.success()).toBe('');
+    expect(fixture.nativeElement.textContent).toContain('Other claim');
+    expect(fixture.nativeElement.textContent).not.toContain('Response sent.');
+    http.expectNone('/api/claims');
+  });
+  it('ignores a stale response error even after returning to the original claim', () => {
+    const { component, http } = setup(); http.expectOne('/api/claims').flush([claim]);
+    component.openClaim(7); http.expectOne('/api/claims/7').flush(claim);
+    component.response = 'Info'; component.respond(); const pending = http.expectOne('/api/claims/7/respond');
+    component.openClaim(8); http.expectOne('/api/claims/8').flush({ ...claim, id: 8 });
+    component.openClaim(7); http.expectOne('/api/claims/7').flush(claim);
+    pending.flush({}, { status: 409, statusText: 'Conflict' });
+    expect(component.detail()?.id).toBe(7); expect(component.responseError()).toBe(''); expect(component.responding()).toBe(false);
+  });
+  it('cancels an in-flight response when the demo identity changes', () => {
+    const { fixture, component, identity, http } = setup(); http.expectOne('/api/claims').flush([claim]);
+    component.openClaim(7); http.expectOne('/api/claims/7').flush(claim);
+    component.response = 'Info'; component.respond(); const pending = http.expectOne('/api/claims/7/respond');
+    identity.select('2'); fixture.detectChanges();
+    expect(pending.cancelled).toBe(true); expect(component.detail()).toBeNull();
+    expect(component.responding()).toBe(false); expect(component.success()).toBe('');
   });
   it('clears private data and cancels pending requests when identity changes', () => {
     const { fixture, component, identity, http } = setup(); http.expectOne('/api/claims').flush([claim]); fixture.detectChanges();

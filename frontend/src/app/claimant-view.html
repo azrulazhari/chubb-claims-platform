@@ -10,7 +10,7 @@
       <form (ngSubmit)="submit()" novalidate>
         <div class="form-grid">
           <label>Claim type <select name="claimType" [(ngModel)]="claimType" required><option value="">Select type</option><option value="Motor">Motor</option><option value="Property">Property</option></select></label>
-          <label>Incident date <input type="date" name="incidentDate" [(ngModel)]="incidentDate" required></label>
+          <label>Incident date <input type="date" [max]="maxIncidentDate" name="incidentDate" [(ngModel)]="incidentDate" required></label>
           <label class="wide">Incident description <textarea name="description" [(ngModel)]="description" maxlength="2000" rows="3" required></textarea></label>
           <label>Claimed amount (MYR) <input type="text" inputmode="decimal" name="amount" [(ngModel)]="amount" placeholder="e.g. 1250.00" required><span class="hint">Enter up to two decimal places, without commas.</span></label>
         </div>

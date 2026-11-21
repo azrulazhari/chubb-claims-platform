@@ -16,10 +16,12 @@ public class ClaimsWorkflowTests
     {
         private readonly string dbFile = Path.Combine(Path.GetTempPath(), $"chubb-tests-{Guid.NewGuid():N}.db");
         private readonly string environment;
-        public TestApp(string environment = "Development") => this.environment = environment;
+        private readonly TimeProvider? clock;
+        public TestApp(string environment = "Development", TimeProvider? clock = null) { this.environment = environment; this.clock = clock; }
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment(environment);
+            if (clock is not null) builder.ConfigureServices(services => services.AddSingleton(clock));
             builder.UseSetting("ConnectionStrings:Claims", $"Data Source={dbFile};Foreign Keys=True");
         }
         public HttpClient Client(int? id = null)
@@ -131,6 +133,27 @@ public class ClaimsWorkflowTests
         using var app = new TestApp(); using var client = app.Client();
         client.DefaultRequestHeaders.Add("X-Demo-User-Id", id);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/claims")).StatusCode);
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    [Theory]
+    [InlineData("2026-06-01T15:59:59Z", "2026-05-31", HttpStatusCode.Created)]
+    [InlineData("2026-06-01T15:59:59Z", "2026-06-01", HttpStatusCode.Created)]
+    [InlineData("2026-06-01T15:59:59Z", "2026-06-02", HttpStatusCode.BadRequest)]
+    [InlineData("2026-06-01T16:00:00Z", "2026-06-01", HttpStatusCode.Created)]
+    [InlineData("2026-06-01T16:00:00Z", "2026-06-02", HttpStatusCode.Created)]
+    [InlineData("2026-06-01T16:00:00Z", "2026-06-03", HttpStatusCode.BadRequest)]
+    public async Task IncidentDateUsesMalaysiaCalendar(string instant, string date, HttpStatusCode expected)
+    {
+        using var app = new TestApp(clock: new FixedTimeProvider(DateTimeOffset.Parse(instant)));
+        using var claimant = app.Client(1);
+        var result = await claimant.PostAsJsonAsync("/api/claims", new { claimType = "Motor", incidentDescription = "Damage", incidentDate = date, claimedAmount = 1 });
+        Assert.Equal(expected, result.StatusCode);
+        if (expected == HttpStatusCode.BadRequest) Assert.Contains("future in Malaysia", await result.Content.ReadAsStringAsync());
     }
 
     [Fact]

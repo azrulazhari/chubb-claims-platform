@@ -169,3 +169,27 @@ Prompted Codex to replace the claims officer placeholder with a working Angular 
 Commit the officer portal, run a full interactive browser walkthrough across both roles, rerun the complete backend and frontend test suites, clean up documentation and Git history, and package everything for submission.
 
 ---
+
+## Entry 009 — Final UI Corrections, Business Validation & Verification
+**Focus:** Fixing issues found during manual Chrome testing and final code review, and verifying the complete claims workflow.
+
+### What I asked ChatGPT / Codex
+During manual Chrome testing, I spotted a desktop layout bug where the officer workspace dropped below the sidebar instead of sitting beside it, and noticed the claimant form allowed future incident dates. After fixing those, I had Codex do a final pass over the codebase for any remaining correctness issues—which surfaced an async response race condition in the claimant view that I asked Codex to patch and cover with tests.
+
+### What I accepted
+* **Desktop shell grid fix:** Updated the Angular layout grid so the sidebar and routed workspace sit side-by-side on desktop screens while keeping mobile stacking and table horizontal scrolling intact.
+* **Dual-layer incident date validation:** Locked incident dates to today or earlier using the Malaysia calendar date (`Asia/Kuala_Lumpur`), enforced independently on both the Angular form and `POST /api/claims` (returning `400 Bad Request` on future dates). Added tests covering yesterday, today, tomorrow, and the UTC/Malaysia midnight boundary.
+* **Claimant async race-condition guard:** Added selected-claim ID and selection-version tracking so delayed HTTP responses or errors from an earlier selection can't overwrite the details, messages, or loading state of a newly selected claim.
+* **Regression tests & manual Chrome walkthrough:** Backend tests reached 43 passing tests, and frontend tests reached 32 passing tests (covering delayed responses, stale errors after navigation, and identity-switch cancellations) with clean builds. Completed a full manual Chrome walkthrough (submit -> assign -> info request -> claimant reply -> approve -> dashboard refresh) and confirmed the fixed desktop layout.
+
+### What I challenged / overrode
+* **Passing tests != working UI:** Didn't trust headless test runs alone—manual browser testing caught the desktop grid alignment issue that automated tests missed.
+* **Server-side date enforcement:** Refused to rely solely on HTML date-picker constraints; required independent backend validation so direct API requests can't submit future incidents.
+* **Non-blocking stale-response handling:** Required stale callbacks to quietly discard outdated responses based on claim ID/version rather than locking or blocking user navigation while requests are in flight.
+* **Honest testing scope:** Explicitly noted that the manual Chrome walkthrough happened before the final async race-condition patch, while the race fix itself was verified via focused frontend unit/integration tests.
+* **Clean commit boundaries:** Kept an unrelated local Angular CLI analytics config change separate from these fixes so the Git history stays clean.
+
+### Next Step
+Commit the final fixes, do a quick pass over the README and Git commit history, and package the repo for submission.
+
+---

@@ -3,6 +3,7 @@ using Chubb.Claims.Api.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDbContext<ClaimsDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Claims") ?? "Data Source=claims.db;Foreign Keys=True"));
 var app = builder.Build();

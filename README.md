@@ -45,7 +45,7 @@ The development initializer seeds two deterministic **demo identities** (IDs 1 a
 a claimant and a claims officer. These are sample records, not authentication or
 authorization. It runs after migrations only in Development; do not treat them as real users.
 
-`IncidentDate` is a calendar date. All timestamps use `DateTimeOffset` and must be
+`IncidentDate` is a calendar date and cannot be later than today in Malaysia (Asia/Kuala_Lumpur). All timestamps use `DateTimeOffset` and must be
 provided in UTC (offset `+00:00`); newly constructed records default to UTC. Callers
 are responsible for preserving this convention and updating `UpdatedAt` on changes.
 The MVP supports market `MY` and currency `MYR` only; other codes are rejected.
