@@ -84,3 +84,36 @@ in claim history. Conditional database updates and a transaction make
 assignment and its history atomic. Creation returns 201; invalid requests return
 400, missing identity 401, wrong roles 403, inaccessible claims 404, and invalid
 transitions 409. Demo identity does not provide production authorization.
+
+## Officer dashboard
+
+`GET /api/reports/dashboard` requires a Development demo claims officer, for example
+`curl -H 'X-Demo-User-Id: 2' http://localhost:5080/api/reports/dashboard`.
+Claimants receive 403; missing or invalid identities and requests outside Development
+receive 401. The demo header is not production authentication.
+
+Example response:
+
+```json
+{
+  "totalClaimCount": 6,
+  "outstandingCount": 3,
+  "approvedCount": 1,
+  "rejectedCount": 1,
+  "unassignedOutstandingCount": 1,
+  "outstandingEstimatedLiability": 0.33,
+  "currencyCode": "MYR",
+  "officerWorkload": [
+    { "officerId": 2, "displayName": "Demo Claims Officer", "outstandingCount": 2 },
+    { "officerId": 3, "displayName": "Second officer", "outstandingCount": 0 }
+  ]
+}
+```
+
+Outstanding means `Submitted`, `UnderReview`, or `InfoRequested`. `Approved`,
+`Rejected`, and legacy `Settled` are excluded; Approved and Settled are distinct.
+The liability is an estimate on outstanding claims, not a settled or paid amount.
+Workload includes each officer, including those with zero assigned outstanding claims.
+All values are MYR only. The server reads integer sen and adds them with checked
+Int64 arithmetic; if the sum exceeds Int64, it returns HTTP 422 rather than an
+inaccurate total. This implementation scans claims for each dashboard request.

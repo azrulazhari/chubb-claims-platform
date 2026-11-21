@@ -35,22 +35,10 @@ internal static class ClaimTransitions
 
 public static class ClaimsEndpoints
 {
-    private const string IdentityKey = "DemoIdentity";
     public static void MapClaimsEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/claims");
-        group.AddEndpointFilter(async (context, next) =>
-        {
-            var http = context.HttpContext;
-            if (!http.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment() ||
-                !int.TryParse(http.Request.Headers["X-Demo-User-Id"], out var id) || id <= 0)
-                return Results.Unauthorized();
-            var db = http.RequestServices.GetRequiredService<ClaimsDbContext>();
-            var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id);
-            if (user is null) return Results.Unauthorized();
-            http.Items[IdentityKey] = user;
-            return await next(context);
-        });
+        group.AddEndpointFilter(DemoIdentity.Filter);
         group.MapPost("/", Submit);
         group.MapGet("/", List);
         group.MapGet("/{id:int}", Get);
@@ -60,7 +48,7 @@ public static class ClaimsEndpoints
         group.MapPost("/{id:int}/decision", Decide);
     }
 
-    private static User Actor(HttpContext http) => (User)http.Items[IdentityKey]!;
+    private static User Actor(HttpContext http) => DemoIdentity.Actor(http);
     private static IQueryable<Claim> Visible(ClaimsDbContext db, User user) => user.Role == UserRole.Claimant
         ? db.Claims.Where(x => x.ClaimantId == user.Id) : db.Claims;
     private static bool ValidText(string? text, int max) => !string.IsNullOrWhiteSpace(text) && text.Length <= max;

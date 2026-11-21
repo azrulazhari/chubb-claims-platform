@@ -80,3 +80,25 @@ Prompted Codex to build the core claims workflow endpoints in ASP.NET Core (subm
 Commit this batch of work, then build the claims officer workload and MYR liability exposure summary endpoints before starting on a minimal Angular UI.
 
 ---
+
+## Entry 005 — Claims Reporting & Officer Workload Dashboard
+**Focus:** Building the reporting endpoint for staff workload and outstanding MYR liability exposure.
+
+### What I asked ChatGPT / Codex
+Prompted Codex to build a dashboard reporting endpoint on the existing ASP.NET Core + SQLite backend. Asked for claim status breakdowns, per-officer active workload counts, unassigned queue counts, and total outstanding liability in MYR—along with strict role checks, exact integer math, and integration tests.
+
+### What I accepted
+* **Dashboard endpoint (`GET /api/reports/dashboard`):** Returns total claims, active/outstanding counts, approved/rejected counts, unassigned queue size, and total estimated liability.
+* **Clear definition of "outstanding":** Counted only `Submitted`, `UnderReview`, and `InfoRequested` claims toward active workload and exposure—excluding terminal states (`Approved`, `Rejected`, and legacy `Settled`).
+* **Full officer workload visibility:** Returned active claim counts for every claims officer, explicitly keeping officers with `0` assigned claims in the list so managers can see idle capacity.
+* **Access control & tests:** Locked the endpoint down to claims officers (`403 Forbidden` for claimants, `401 Unauthorized` for missing/invalid identities) and expanded the integration test suite from 28 to 37 passing tests with zero build warnings.
+
+### What I challenged / overrode
+* **Integer overflow & precision on liability totals:** Since Entry 003 flagged `Int64` sen aggregation overflow as a risk, I made sure Codex summed the raw `Int64` sen columns directly rather than converting to floating-point values, and wrapped the sum in `checked` arithmetic. If total liability ever exceeds the supported `Int64` range, the API explicitly fails with `422 Unprocessable Entity` rather than silently overflowing into a wrong dollar figure.
+* **Consistent snapshot reads:** Wrapped the dashboard queries in a database read transaction so all counts and liability totals reflect the exact same point-in-time snapshot rather than shifting mid-request.
+* **No premature caching or background workers:** Kept metrics computed directly on read for the MYR-only MVP instead of adding Redis, materialized views, or background aggregators within the 5-hour cap.
+
+### Next Step
+Commit the reporting endpoint, then scaffold a lean Angular frontend covering the core claimant and claims officer flows and run end-to-end tests against the API.
+
+---
