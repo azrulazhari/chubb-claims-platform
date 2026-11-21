@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting;
 
 namespace Chubb.Claims.Tests;
 
@@ -9,7 +10,7 @@ public class HealthEndpointTests
     [Fact]
     public async Task GetHealth_ReturnsOkWithJsonStatus()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
         using var client = factory.CreateClient();
 
         using var response = await client.GetAsync("/health");

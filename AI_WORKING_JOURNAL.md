@@ -29,4 +29,13 @@ The build succeeded with zero warnings and zero errors, and one HTTP endpoint in
 
 We accepted the scaffolding because it meets the initial requirements. Database integration, claims business logic, authentication, Kafka, and Angular were deliberately deferred.
 
+## Entry 003 — SQLite Persistence and Money Representation
+**Focus:** Building and reviewing the claims persistence foundation.
+
+Codex initially generated the EF Core 10 SQLite domain and persistence model. The first verification reported nine passing tests. We challenged its decimal `TEXT` storage and the weak database amount checks that cast values to `REAL`. A separate read-only review clarified that EF Core's decimal operations are not inherently binary floating-point operations, while raw SQLite casts and queries require care.
+
+For the time-limited MVP, we chose Malaysia and MYR only, although the assessment describes six APAC markets. We retained decimal ringgit properties in C# and switched SQLite persistence to checked `Int64` sen values, added market and currency constraints, and expanded the tests. The final verification reported 18 passing tests, zero build warnings or errors, and a successful migration against a fresh temporary database.
+
+We deferred claim workflows, role enforcement, timestamp policy, authentication, reporting, Kafka, and Angular. Remaining risks include `Int64` aggregate overflow and the need for real authorization before production use.
+
 ---

@@ -32,3 +32,9 @@ appsettings.*.Local.json
 *.pfx
 *.p12
 *.key
+
+# Local SQLite databases and sidecars
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
