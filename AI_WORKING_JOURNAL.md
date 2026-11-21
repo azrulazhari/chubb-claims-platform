@@ -20,4 +20,13 @@ Fed the assessment brief into ChatGPT to help map out the domain boundaries and 
 ### Next Step
 Lock in the .NET version, database, and status transition rules, then use Codex to scaffold the initial backend project structure.
 
+## Entry 002 — Backend Scaffolding and Audit
+**Focus:** Establishing and verifying the initial backend foundation.
+
+Codex generated the .NET 10 ASP.NET Core API and xUnit test project. A separate read-only audit examined the implementation and verified the foundation before acceptance.
+
+The build succeeded with zero warnings and zero errors, and one HTTP endpoint integration test passed. The API also started locally, and `GET /health` returned HTTP 200 with JSON `{"status":"ok"}`. The audit initially encountered sandbox permission and timeout issues; the checks passed after retrying with the required permissions.
+
+We accepted the scaffolding because it meets the initial requirements. Database integration, claims business logic, authentication, Kafka, and Angular were deliberately deferred.
+
 ---

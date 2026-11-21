@@ -1,0 +1,34 @@
+# .NET and test output
+[Bb]in/
+[Oo]bj/
+artifacts/
+TestResults/
+*.trx
+coverage/
+
+# Angular and Node output
+node_modules/
+.angular/
+dist/
+out-tsc/
+
+# Editor and OS files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+.DS_Store
+Thumbs.db
+
+# Local secrets and overrides
+.env
+.env.*
+!.env.example
+secrets.json
+appsettings.Local.json
+appsettings.*.Local.json
+*.pfx
+*.p12
+*.key
